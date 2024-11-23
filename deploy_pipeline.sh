@@ -4,7 +4,6 @@
 FASTLANE_ANDROID_COMMAND="fastlane deploy"
 FASTLANE_IOS_COMMAND="fastlane release"
 PROJECT_PATH=$(pwd)
-LOG_FILE="deploy.log"
 
 # Colors
 GREEN='\033[0;32m'
