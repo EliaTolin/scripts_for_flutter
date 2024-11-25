@@ -130,10 +130,3 @@ This project is open-source and available under the [GPL License](LICENSE).
 
 ### 🌟 We value your feedback!
 If you have suggestions or encounter issues, let us know. Together, we can make this tool even better! 🚀
-"""
-
-file_path = "/mnt/data/README.md"
-with open(file_path, "w") as file:
-    file.write(readme_content)
-
-file_path
