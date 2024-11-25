@@ -7,6 +7,7 @@ PROJECT_PATH=$(pwd)
 ERROR_LOG_FILE="deploy_flutter.log"
 VERBOSE=false
 SKIP_ANALYZE=false
+SKIP_VERSION=false
 
 # Colors
 GREEN='\033[0;32m'
@@ -34,6 +35,29 @@ error() {
     echo -e "[$(timestamp)] ${RED}$1${NC}"
     echo "[$(timestamp)] $1" >> "$ERROR_LOG_FILE"
     exit 1
+}
+
+show_help() {
+    cat <<EOF
+Usage: $0 [options] [target]
+
+Options:
+  --verbose           Show detailed logs for each command
+  --skip-analyze      Skip the Flutter analyze step
+  --skip-version      Skip incrementing the version
+  -h, --help          Show this help message
+
+Targets:
+  android             Deploy only for Android
+  ios                 Deploy only for iOS
+  all (default)       Deploy for both Android and iOS
+
+Examples:
+  $0 android
+  $0 --skip-analyze ios
+  $0 --verbose --skip-version
+EOF
+    exit 0
 }
 
 check_dependencies() {
@@ -97,6 +121,11 @@ flutter_tests() {
 }
 
 increment_version() {
+    if [ "$SKIP_VERSION" = true ]; then
+        log "🚫 Skipping version increment as requested."
+        return
+    fi
+
     log "📈 Incrementing version..."
     VERSION=$(grep 'version: ' pubspec.yaml | sed 's/version: //' | tr -d '\n' | tr -d '\r')
     MAJOR=$(echo "$VERSION" | awk -F. '{print $1}')
@@ -128,14 +157,6 @@ deploy_ios() {
     success "✅ iOS deployment completed"
 }
 
-cleanup() {
-    log "🧹 Cleaning up temporary files and caches..."
-    if ! flutter clean > /dev/null 2>&1; then
-        error "❌ Error during cleanup"
-    fi
-    success "✅ Cleanup completed"
-}
-
 # Parse arguments
 for arg in "$@"; do
     case $arg in
@@ -144,6 +165,12 @@ for arg in "$@"; do
             ;;
         --skip-analyze)
             SKIP_ANALYZE=true
+            ;;
+        --skip-version)
+            SKIP_VERSION=true
+            ;;
+        -h|--help)
+            show_help
             ;;
         *)
             TARGET=$arg
@@ -189,9 +216,6 @@ case $TARGET in
         error "❌ Error: Invalid target '$TARGET'"
         ;;
 esac
-
-# Cleanup
-cleanup
 
 # Calculate and print total time
 END_TIME=$(date +%s)

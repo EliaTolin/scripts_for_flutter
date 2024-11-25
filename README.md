@@ -6,6 +6,12 @@ The script relies on **Fastlane** to handle the deployment process for both Andr
 
 ---
 
+## 🛠️ Current Compatibility
+
+This script is currently only available for **macOS**. Contributions to make it compatible with other operating systems (e.g., Linux, Windows) are very welcome! 🙌
+
+---
+
 ## 📋 How to Use
 
 1. **Navigate to your Flutter project directory**:
@@ -50,6 +56,44 @@ The script relies on **Fastlane** to handle the deployment process for both Andr
    ```bash
    bash /shared/scripts/deploy_pipeline.sh --skip-analyze android
    ```
+
+6. **Skip version increment**:
+   To skip incrementing the version, use the `--skip-version` flag:
+   ```bash
+   bash /shared/scripts/deploy_pipeline.sh --skip-version android
+   ```
+
+7. **Show help**:
+   To display the available options and usage instructions, use the `-h` or `--help` flag:
+   ```bash
+   bash /shared/scripts/deploy_pipeline.sh --help
+   ```
+
+---
+
+## 🔍 Help
+
+Run the script with the `--help` flag to display the following usage instructions:
+
+```
+Usage: deploy_pipeline.sh [options] [target]
+
+Options:
+  --verbose           Show detailed logs for each command
+  --skip-analyze      Skip the Flutter analyze step
+  --skip-version      Skip incrementing the version
+  -h, --help          Show this help message
+
+Targets:
+  android             Deploy only for Android
+  ios                 Deploy only for iOS
+  all (default)       Deploy for both Android and iOS
+
+Examples:
+  deploy_pipeline.sh android
+  deploy_pipeline.sh --skip-analyze ios
+  deploy_pipeline.sh --verbose --skip-version
+```
 
 ---
 
@@ -103,16 +147,10 @@ To simplify usage, you can set an alias for the script. This allows you to use t
 - **Hidden Logs**: Only errors are displayed during build and deployment steps.
 - **Verbose Mode**: Use `--verbose` for detailed command logs.
 - **Skip Code Analysis**: Use `--skip-analyze` to bypass `flutter analyze`.
+- **Skip Version Increment**: Use `--skip-version` to avoid incrementing the version.
 - **Error Logging**: Errors are saved in `deploy_flutter.log` for easy debugging.
 - **Time Tracking**: Displays the total time taken for the pipeline to complete.
 - **Fastlane Integration**: Utilizes Fastlane for streamlined Android and iOS deployment.
-- **Post-Deployment Cleanup**: Automatically cleans up temporary files and cache.
-
----
-
-## 🛠️ Current Compatibility
-
-This script is currently only available for **macOS**. Contributions to make it compatible with other operating systems (e.g., Linux, Windows) are very welcome! 🙌
 
 ---
 
