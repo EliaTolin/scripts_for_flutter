@@ -1,5 +1,3 @@
-# Creating the updated README.md file with the requested changes
-readme_content = """
 # 🚀 Flutter Deployment Pipeline
 
 This repository contains a centralized deployment pipeline script for Flutter projects. It helps automate and streamline the build, test, and deployment process for Android and iOS apps. The script is designed to work directly from your project folder and ensures compatibility with multiple projects.
