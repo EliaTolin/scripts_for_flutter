@@ -1,4 +1,5 @@
-
+# Creating the updated README.md file with the requested changes
+readme_content = """
 # 🚀 Flutter Deployment Pipeline
 
 This repository contains a centralized deployment pipeline script for Flutter projects. It helps automate and streamline the build, test, and deployment process for Android and iOS apps. The script is designed to work directly from your project folder and ensures compatibility with multiple projects.
@@ -38,6 +39,18 @@ The script relies on **Fastlane** to handle the deployment process for both Andr
    If you're not in a valid Flutter project directory, the script will alert you:
    ```
    ❌ Error: 'pubspec.yaml' not found in the current directory.
+   ```
+
+4. **Enable verbose mode**:
+   To display detailed logs during execution, use the `--verbose` flag:
+   ```bash
+   bash /shared/scripts/deploy_pipeline.sh --verbose android
+   ```
+
+5. **Skip code analysis**:
+   If you want to skip `flutter analyze`, use the `--skip-analyze` flag:
+   ```bash
+   bash /shared/scripts/deploy_pipeline.sh --skip-analyze android
    ```
 
 ---
@@ -90,8 +103,18 @@ To simplify usage, you can set an alias for the script. This allows you to use t
 - **Platform-Specific Deployment**: Choose to deploy only for Android or iOS, or both.
 - **Automatic Environment Detection**: The script verifies if you're in a valid Flutter project.
 - **Hidden Logs**: Only errors are displayed during build and deployment steps.
+- **Verbose Mode**: Use `--verbose` for detailed command logs.
+- **Skip Code Analysis**: Use `--skip-analyze` to bypass `flutter analyze`.
+- **Error Logging**: Errors are saved in `deploy_flutter.log` for easy debugging.
 - **Time Tracking**: Displays the total time taken for the pipeline to complete.
 - **Fastlane Integration**: Utilizes Fastlane for streamlined Android and iOS deployment.
+- **Post-Deployment Cleanup**: Automatically cleans up temporary files and cache.
+
+---
+
+## 🛠️ Current Compatibility
+
+This script is currently only available for **macOS**. Contributions to make it compatible with other operating systems (e.g., Linux, Windows) are very welcome! 🙌
 
 ---
 
@@ -109,3 +132,10 @@ This project is open-source and available under the [GPL License](LICENSE).
 
 ### 🌟 We value your feedback!
 If you have suggestions or encounter issues, let us know. Together, we can make this tool even better! 🚀
+"""
+
+file_path = "/mnt/data/README.md"
+with open(file_path, "w") as file:
+    file.write(readme_content)
+
+file_path

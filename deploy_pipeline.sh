@@ -4,6 +4,9 @@
 FASTLANE_ANDROID_COMMAND="fastlane deploy"
 FASTLANE_IOS_COMMAND="fastlane release"
 PROJECT_PATH=$(pwd)
+ERROR_LOG_FILE="deploy_flutter.log"
+VERBOSE=false
+SKIP_ANALYZE=false
 
 # Colors
 GREEN='\033[0;32m'
@@ -15,22 +18,29 @@ NC='\033[0m' # No Color
 START_TIME=$(date +%s)
 
 # Functions
+timestamp() {
+    date +"%H:%M:%S"
+}
+
 log() {
-    echo -e "${YELLOW}$1${NC}"
+    echo -e "[$(timestamp)] ${YELLOW}$1${NC}"
 }
 
 success() {
-    echo -e "${GREEN}$1${NC}"
+    echo -e "[$(timestamp)] ${GREEN}$1${NC}"
 }
 
 error() {
-    echo -e "${RED}$1${NC}"
+    echo -e "[$(timestamp)] ${RED}$1${NC}"
+    echo "[$(timestamp)] $1" >> "$ERROR_LOG_FILE"
     exit 1
 }
 
 check_dependencies() {
-    command -v flutter >/dev/null 2>&1 || error "❌ Flutter is not installed. Please install it."
-    command -v fastlane >/dev/null 2>&1 || error "❌ Fastlane is not installed. Please install it."
+    log "🔍 Checking dependencies..."
+    command -v flutter >/dev/null 2>&1 || error "Flutter is not installed. Please install it."
+    command -v fastlane >/dev/null 2>&1 || error "Fastlane is not installed. Please install it."
+    success "✅ Dependencies are installed"
 }
 
 flutter_clean() {
@@ -63,6 +73,19 @@ flutter_gen_l10n() {
         error "❌ Error during 'flutter gen-l10n'"
     fi
     success "✅ Localization generation completed"
+}
+
+flutter_analyze() {
+    if [ "$SKIP_ANALYZE" = true ]; then
+        log "🚫 Skipping flutter analyze as requested."
+        return
+    fi
+
+    log "🛠️ Analyzing code..."
+    if ! flutter analyze > /dev/null 2>&1; then
+        error "❌ Code analysis failed"
+    fi
+    success "✅ Code analysis completed"
 }
 
 flutter_tests() {
@@ -105,19 +128,47 @@ deploy_ios() {
     success "✅ iOS deployment completed"
 }
 
-# Main script
-check_dependencies
+cleanup() {
+    log "🧹 Cleaning up temporary files and caches..."
+    if ! flutter clean > /dev/null 2>&1; then
+        error "❌ Error during cleanup"
+    fi
+    success "✅ Cleanup completed"
+}
 
-TARGET=$1
+# Parse arguments
+for arg in "$@"; do
+    case $arg in
+        --verbose)
+            VERBOSE=true
+            ;;
+        --skip-analyze)
+            SKIP_ANALYZE=true
+            ;;
+        *)
+            TARGET=$arg
+            ;;
+    esac
+done
+
 if [ -z "$TARGET" ]; then
     TARGET="all"
 fi
+
+# Verbose mode
+if [ "$VERBOSE" = true ]; then
+    set -x
+fi
+
+# Main script
+check_dependencies
 
 # Run Flutter preparation steps
 flutter_clean
 flutter_pub_get
 flutter_build_runner
 flutter_gen_l10n
+flutter_analyze
 flutter_tests
 increment_version
 
@@ -138,6 +189,9 @@ case $TARGET in
         error "❌ Error: Invalid target '$TARGET'"
         ;;
 esac
+
+# Cleanup
+cleanup
 
 # Calculate and print total time
 END_TIME=$(date +%s)
