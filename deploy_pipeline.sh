@@ -8,6 +8,7 @@ ERROR_LOG_FILE="deploy_flutter.log"
 VERBOSE=false
 SKIP_ANALYZE=false
 SKIP_VERSION=false
+BETA=false
 
 # Colors
 GREEN='\033[0;32m'
@@ -45,6 +46,7 @@ Options:
   --verbose           Show detailed logs for each command
   --skip-analyze      Skip the Flutter analyze step
   --skip-version      Skip incrementing the version
+  --beta              Deploy to closed testing (TestFlight for iOS, alpha track for Android)
   -h, --help          Show this help message
 
 Targets:
@@ -56,6 +58,8 @@ Examples:
   $0 android
   $0 --skip-analyze ios
   $0 --verbose --skip-version
+  $0 --beta all
+  $0 --beta ios
 EOF
     exit 0
 }
@@ -169,6 +173,9 @@ for arg in "$@"; do
         --skip-version)
             SKIP_VERSION=true
             ;;
+        --beta)
+            BETA=true
+            ;;
         -h|--help)
             show_help
             ;;
@@ -180,6 +187,13 @@ done
 
 if [ -z "$TARGET" ]; then
     TARGET="all"
+fi
+
+# Beta mode: switch to beta fastlane lanes
+if [ "$BETA" = true ]; then
+    FASTLANE_ANDROID_COMMAND="fastlane beta"
+    FASTLANE_IOS_COMMAND="fastlane beta"
+    log "🧪 Beta mode enabled — deploying to closed testing"
 fi
 
 # Verbose mode
