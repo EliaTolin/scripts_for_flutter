@@ -4,7 +4,12 @@
 FASTLANE_ANDROID_COMMAND="fastlane deploy"
 FASTLANE_IOS_COMMAND="fastlane release"
 PROJECT_PATH=$(pwd)
-ERROR_LOG_FILE="deploy_flutter.log"
+# Command output goes to one log file per step, outside the project so that
+# `flutter clean` does not delete it and git does not see it.
+LOG_DIR=$(mktemp -d -t deploy_flutter)
+ERROR_LOG_FILE="$LOG_DIR/errors.log"
+# Lines of a failed step's log shown in the terminal
+FAILURE_TAIL_LINES=40
 VERBOSE=false
 SKIP_ANALYZE=false
 SKIP_VERSION=false
@@ -36,6 +41,29 @@ error() {
     echo -e "[$(timestamp)] ${RED}$1${NC}"
     echo "[$(timestamp)] $1" >> "$ERROR_LOG_FILE"
     exit 1
+}
+
+# Runs a command and saves its output to $LOG_DIR/<name>.log.
+# On failure prints the end of the log, so the cause is visible without
+# rerunning in verbose mode. With --verbose the output is also shown live.
+run_step() {
+    local name=$1
+    shift
+    local step_log="$LOG_DIR/$name.log"
+    local status
+    if [ "$VERBOSE" = true ]; then
+        "$@" 2>&1 | tee "$step_log"
+        status=${PIPESTATUS[0]}
+    else
+        "$@" > "$step_log" 2>&1
+        status=$?
+    fi
+    if [ $status -ne 0 ]; then
+        echo -e "${RED}--- last $FAILURE_TAIL_LINES lines of $step_log ---${NC}"
+        tail -n "$FAILURE_TAIL_LINES" "$step_log"
+        echo -e "${RED}--- end of log ---${NC}"
+    fi
+    return $status
 }
 
 show_help() {
@@ -73,7 +101,7 @@ check_dependencies() {
 
 flutter_clean() {
     log "🧹 Cleaning the project..."
-    if ! flutter clean > /dev/null 2>&1; then
+    if ! run_step clean flutter clean; then
         error "❌ Error during 'flutter clean'"
     fi
     success "✅ Cleaning completed"
@@ -81,7 +109,7 @@ flutter_clean() {
 
 flutter_pub_get() {
     log "📦 Fetching dependencies..."
-    if ! flutter pub get > /dev/null 2>&1; then
+    if ! run_step pub_get flutter pub get; then
         error "❌ Error during 'flutter pub get'"
     fi
     success "✅ Dependencies fetched"
@@ -89,7 +117,7 @@ flutter_pub_get() {
 
 flutter_build_runner() {
     log "🔄 Running build runner..."
-    if ! flutter pub run build_runner build --delete-conflicting-outputs > /dev/null 2>&1; then
+    if ! run_step build_runner dart run build_runner build --delete-conflicting-outputs; then
         error "❌ Error during 'flutter build_runner'"
     fi
     success "✅ Build runner completed"
@@ -97,7 +125,7 @@ flutter_build_runner() {
 
 flutter_gen_l10n() {
     log "🌍 Generating localization files..."
-    if ! flutter gen-l10n > /dev/null 2>&1; then
+    if ! run_step gen_l10n flutter gen-l10n; then
         error "❌ Error during 'flutter gen-l10n'"
     fi
     success "✅ Localization generation completed"
@@ -110,7 +138,7 @@ flutter_analyze() {
     fi
 
     log "🛠️ Analyzing code..."
-    if ! flutter analyze > /dev/null 2>&1; then
+    if ! run_step analyze flutter analyze; then
         error "❌ Code analysis failed"
     fi
     success "✅ Code analysis completed"
@@ -118,7 +146,7 @@ flutter_analyze() {
 
 flutter_tests() {
     log "🧪 Running tests..."
-    if ! flutter test > /dev/null 2>&1; then
+    if ! run_step test flutter test; then
         error "❌ Tests failed"
     fi
     success "✅ Tests completed"
@@ -147,7 +175,7 @@ increment_version() {
 
 deploy_android() {
     log "🚀 Deploying Android..."
-    if ! (cd android && $FASTLANE_ANDROID_COMMAND > /dev/null 2>&1); then
+    if ! (cd android && run_step android $FASTLANE_ANDROID_COMMAND); then
         error "❌ Error during Android deployment"
     fi
     success "✅ Android deployment completed"
@@ -155,7 +183,7 @@ deploy_android() {
 
 deploy_ios() {
     log "🚀 Deploying iOS..."
-    if ! (cd ios && $FASTLANE_IOS_COMMAND > /dev/null 2>&1); then
+    if ! (cd ios && run_step ios $FASTLANE_IOS_COMMAND); then
         error "❌ Error during iOS deployment"
     fi
     success "✅ iOS deployment completed"
@@ -202,6 +230,10 @@ if [ "$VERBOSE" = true ]; then
 fi
 
 # Main script
+if [ ! -f "$PROJECT_PATH/pubspec.yaml" ]; then
+    error "❌ Error: 'pubspec.yaml' not found in the current directory."
+fi
+log "📝 Logs: $LOG_DIR"
 check_dependencies
 
 # Run Flutter preparation steps
@@ -222,9 +254,18 @@ case $TARGET in
         deploy_ios
         ;;
     "all")
+        # Each platform runs in its own subshell: `error` there only ends the
+        # subshell, so the exit status of every job must be checked here.
         deploy_android &
+        ANDROID_PID=$!
         deploy_ios &
-        wait
+        IOS_PID=$!
+        FAILED=""
+        wait $ANDROID_PID || FAILED="$FAILED Android"
+        wait $IOS_PID || FAILED="$FAILED iOS"
+        if [ -n "$FAILED" ]; then
+            error "❌ Deployment failed for:$FAILED (logs: $LOG_DIR)"
+        fi
         ;;
     *)
         error "❌ Error: Invalid target '$TARGET'"

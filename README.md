@@ -82,6 +82,7 @@ Options:
   --verbose           Show detailed logs for each command
   --skip-analyze      Skip the Flutter analyze step
   --skip-version      Skip incrementing the version
+  --beta              Deploy to closed testing (TestFlight for iOS, alpha track for Android)
   -h, --help          Show this help message
 
 Targets:
@@ -144,11 +145,11 @@ To simplify usage, you can set an alias for the script. This allows you to use t
 
 - **Platform-Specific Deployment**: Choose to deploy only for Android or iOS, or both.
 - **Automatic Environment Detection**: The script verifies if you're in a valid Flutter project.
-- **Hidden Logs**: Only errors are displayed during build and deployment steps.
+- **Step Logs**: Each step writes its output to its own file in a temporary folder (printed at start). When a step fails, the last 40 lines of its log are shown in the terminal.
 - **Verbose Mode**: Use `--verbose` for detailed command logs.
 - **Skip Code Analysis**: Use `--skip-analyze` to bypass `flutter analyze`.
 - **Skip Version Increment**: Use `--skip-version` to avoid incrementing the version.
-- **Error Logging**: Errors are saved in `deploy_flutter.log` for easy debugging.
+- **Reliable Exit Code**: When deploying both platforms in parallel, the script waits for each one and exits with an error if either fails.
 - **Time Tracking**: Displays the total time taken for the pipeline to complete.
 - **Fastlane Integration**: Utilizes Fastlane for streamlined Android and iOS deployment.
 
